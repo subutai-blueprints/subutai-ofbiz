@@ -1,0 +1,12 @@
+[Unit]
+Description=OFBiz Service
+After=network.target auditd.service
+
+[Service]
+User=root
+WorkingDirectory=/opt/ofbiz-REL-16.11.06
+ExecStart=/opt/ofbiz-REL-16.11.06/gradlew "ofbiz --start --portoffset 10000"
+ExecStop=/opt/ofbiz-REL-16.11.06/gradlew "ofbiz --shutdown --portoffset 10000"
+
+[Install]
+WantedBy=multi-user.target

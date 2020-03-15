@@ -1,0 +1,127 @@
+---
+
+- hosts: all
+  remote_user: root
+  tasks:
+
+    # -------------------------------------------------------------------------
+    # Freshen up the host
+    # -------------------------------------------------------------------------
+
+    - name: Disable dpkg fsync
+      raw: test -e /etc/dpkg/dpkg.cfg.d/unsafe-io || echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/unsafe-io
+
+    - name: Upgrade debian
+      apt:
+        update_cache: true
+        upgrade: true
+
+    # -------------------------------------------------------------------------
+    # Install shit that should be there and fix locales
+    # -------------------------------------------------------------------------
+
+    - name: Install setup tools
+      apt:
+        name: "{{ item }}"
+        allow_unauthenticated: yes
+      with_items:
+        - sudo
+        - dirmngr
+        - software-properties-common
+        - apt-transport-https
+
+    - name: Add mariadb key
+      apt_key:
+       id: F1656F24C74CD1D8
+       url: https://mariadb.org/mariadb_release_signing_key.asc
+       state: present    
+
+    - name: add mariadb repo
+      apt_repository:
+       repo: 'deb [arch=amd64,i386,ppc64el] https://ftp.harukasan.org/mariadb/repo/10.4/debian stretch main'
+       state: present  
+
+    - name: Run "apt-get update"
+      apt:
+        update_cache: yes
+
+    - name: Install mariadb-server
+      apt:
+        name: mariadb-server
+        state: present    
+
+    - name: Install rsync
+      apt:
+        name: rsync
+        state: present   
+
+    - name: copy galera.cnf.j2
+      template:
+        src: galera.cnf.j2
+        dest: /etc/mysql/conf.d/galera.cnf
+        
+    - name: copy mysql configs
+      template:
+        src: my.cnf
+        dest: /etc/mysql/my.cnf
+
+    - name: copy build.gradle
+      template:
+        src: build.gradle
+        dest: /opt/ofbiz-REL-16.11.06/build.gradle     
+        
+    - name: copy entityengine.xml
+      template:
+        src: entityengine.xml
+        dest: /opt/ofbiz-REL-16.11.06/framework/entity/config/entityengine.xml
+    
+    - name: copy ofbiz service
+      template:
+        src: ofbiz.service
+        dest: /etc/systemd/system/ofbiz.service
+        
+    - name: copy db.sh 
+      template:
+        src: db.sh 
+        dest: /opt/db.sh        
+      when: inventory_hostname == groups['servers'][0]   
+        
+    - name: systemctl daemon-reload
+      systemd:
+        daemon_reload: yes    
+
+    - name: Unarchive DB backups
+      unarchive:
+        src: https://ipfs.subutai.io/ipfs/Qmbk6R3ZrZnWroa2AqDBsdxiF6oWyGmRx3Qb38686V8wzJ/ofbiz-backups.tar.gz
+        dest: /opt/
+        remote_src: yes
+      when: inventory_hostname == groups['servers'][0]  
+    
+    - name: stop mysql service
+      service:
+        name: "mysql"
+        state: "stopped"
+        
+    - name: Start first node
+      shell: galera_new_cluster
+      when: inventory_hostname == groups['servers'][0]
+
+    - name: restore database
+      command: bash  /opt/db.sh
+      when: inventory_hostname == groups['servers'][0]
+    
+    - name: start and enable mysql one by one
+      service:
+        name: "mysql"
+        state: "started"
+        enabled: true
+      when: item != groups["servers"][0]
+      delegate_to: "{{ item }}"
+      with_items: "{{groups['servers']}}"
+      run_once: true
+      
+    - name: start and enable ofbiz
+      service:
+        name: "ofbiz"
+        state: "started"
+        enabled: true
