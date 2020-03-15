@@ -25,7 +25,7 @@
     }
   ],
   "ansible-configuration": {
-    "source-url": "https://github.com/absidish/app1/archive/master.zip",
+    "source-url": "https://github.com/subutai-blueprints/subutai-ofbiz/archive/master.zip",
     "ansible-playbook": "main.yml",
     "extra-vars": [
        {
@@ -58,7 +58,7 @@
     "peerCount": {
       "description": "peer count",
       "type": "int",
-      "default": "1",
+      "default": "3",
       "validation": "[0-9]+"
     },
    "newOFBizdbUserPassword": {
