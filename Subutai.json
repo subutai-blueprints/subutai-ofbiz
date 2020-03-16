@@ -50,13 +50,13 @@
       "validation": "[a-zA-Z0-9]+"
     },
     "containerPerPeerCount": {
-      "description": "Number of containers which will be created in each peer",
+      "description": "A number of containers, which will be placed in each peer",
       "type": "int",
       "default": "1",
       "validation": "[0-9]+"
     },
     "peerCount": {
-      "description": "Number of peers where will be created containers",
+      "description": "A number of peers, where will be placed containers",
       "type": "int",
       "default": "3",
       "validation": "[0-9]+"
